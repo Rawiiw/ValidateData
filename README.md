@@ -28,7 +28,8 @@ Instructions:
 
 ![modis_comparison_aqua_day_20_2024-05-15_06-50-50](https://github.com/Rawiiw/ValidateData/assets/79237095/04af1873-1faa-42ac-a0d9-7483909b76b0)
 
-![modis_comparison_terra_night_20_2024-05-15_07-02-07](https://github.com/Rawiiw/ValidateData/assets/79237095/d8c773e4-b3cf-43cd-96b5-65273a8f9971)
+![image](https://github.com/Rawiiw/ValidateData/assets/79237095/81ff298f-164b-47fa-835f-aa61f7c92f70)
+
 
 ![image](https://github.com/Rawiiw/ValidateData/assets/79237095/e66744d5-4558-4072-a960-688e8fdb3b0a)
 
