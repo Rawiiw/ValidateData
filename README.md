@@ -9,7 +9,7 @@ The module consists of Python scripts (about 11 executable files) that work in C
 
 Запуск:
 
-1. Скачайте исполняемые файлы и requirements.txt в папку
+1. Скачайте исполняемые файлы и requirements.txt в папку ValidateData
 2. Запустите CMD консоль от имени администратора
 3. Перейдите в папку с проектом с помощью команды cd (например, "cd C:\Users\Alexandra\Documents\ValidateData")
 4. Введите команду pip install -r requirements.txt
