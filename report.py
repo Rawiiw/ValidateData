@@ -1,10 +1,18 @@
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-import pandas as pd
+import os
+from datetime import datetime
 
-def create_pdf_report(df, matches):
-    pdf_file_name = "Reports/report.pdf"
+def create_pdf_report(df, matches, satellite_name, start_date, end_date):
+    # Создаем папку Reports, если она не существует
+    if not os.path.exists('Reports'):
+        os.makedirs('Reports')
+
+    # Формируем имя файла на основе текущего времени, названия спутника и дат начала и конца
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    pdf_file_name = f"Reports/{satellite_name}_report_{start_date}_{end_date}_{current_time}.pdf"
+
     doc = SimpleDocTemplate(pdf_file_name, pagesize=letter)
     elements = []
 
@@ -18,11 +26,11 @@ def create_pdf_report(df, matches):
                                   ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
                                   ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
 
-    if len(matches) % 2 == 0:  # Check if matches list has an even number of elements
+    if len(matches) % 2 == 0:
         matches_table_data = [['ID', 'Satellite name', 'Satellite value', 'Satellite Datetime', 'Ground value', 'Ground Datetime']]
         for idx in range(0, len(matches), 2):
             match = matches[idx]
-            if idx + 1 < len(matches):  # Ensure index doesn't exceed list length
+            if idx + 1 < len(matches):
                 match_next = matches[idx + 1]
                 matches_table_data.append([idx // 2 + 1,
                                            match.get('source', '').split(' - ')[1],
