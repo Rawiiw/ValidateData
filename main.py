@@ -15,7 +15,7 @@ from terra_data import TerraDataManager
 
 def authenticate_ee():
     ee.Authenticate()
-    ee.Initialize(project='ee')
+    ee.Initialize(project='ee-kosinova')
 
 
 def select_satellite():
@@ -136,9 +136,13 @@ if __name__ == "__main__":
         map_viewer = MapViewer(coordinates, date_start, date_end)
         map_viewer.display_map()
         save_table(df, matches, excel_data)
-        create_pdf_report(df, matches)
+        create_pdf_report(df, matches, satellite_choice, date_start, date_end)
     else:
         print("Некорректный выбор спутника.")
+
+
+
+
 
 
 
