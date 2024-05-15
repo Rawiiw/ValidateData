@@ -15,7 +15,7 @@ from terra_data import TerraDataManager
 
 def authenticate_ee():
     ee.Authenticate()
-    ee.Initialize(project='ee-kosinova')
+    ee.Initialize(project='ee')
 
 
 def select_satellite():
