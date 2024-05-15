@@ -30,7 +30,8 @@ Instructions:
 
 ![modis_comparison_terra_night_20_2024-05-15_07-02-07](https://github.com/Rawiiw/ValidateData/assets/79237095/d8c773e4-b3cf-43cd-96b5-65273a8f9971)
 
-![image](https://github.com/Rawiiw/ValidateData/assets/79237095/5ed074dc-2cbb-44b4-bb98-afb23a6a408c)
+![image](https://github.com/Rawiiw/ValidateData/assets/79237095/e66744d5-4558-4072-a960-688e8fdb3b0a)
+
 
 ![image](https://github.com/Rawiiw/ValidateData/assets/79237095/4538a9b0-639a-4d4a-88e1-6bab6c3b56e1)
 
