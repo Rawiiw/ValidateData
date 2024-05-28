@@ -1,16 +1,25 @@
 import ee
 import pandas as pd
 
-
 class TerraDataManager:
     __instance = None
 
     def get_image_collection(self, coordinates, date_start, date_end):
         point = ee.Geometry.Point(coordinates)
         transformed_point = point.transform('SR-ORG:6974', 1000)
+
+        def mask_clouds(image):
+            # Извлечение QC битов
+            qc = image.select('QC_Day')
+            cloud_mask = qc.bitwiseAnd(1 << 0).eq(0)  # Бит 0: облака
+            image = image.updateMask(cloud_mask)  # Применение маски облаков
+            return image
+
         lst = ee.ImageCollection('MODIS/061/MOD11A1') \
             .filterBounds(transformed_point) \
-            .filterDate(date_start, date_end)
+            .filterDate(date_start, date_end) \
+            .map(mask_clouds)  # Применение маски облачности
+
         return lst
 
     def sample_image(self, image, point):
@@ -102,11 +111,8 @@ class TerraDataManager:
             print("Feature collection is empty.")
             return None
 
-
 def dataframe_to_dict(df):
-
     if df is not None:
         return df.to_dict(orient='records')
     else:
         return None
-

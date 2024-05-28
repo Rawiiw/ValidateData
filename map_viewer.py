@@ -1,8 +1,8 @@
+import os
 import webbrowser
 import ee
 import geemap
 from datetime import datetime
-
 
 class MapViewer:
     def __init__(self, coordinates, date_start, date_end):
@@ -12,6 +12,9 @@ class MapViewer:
             self.coordinates = [float(coord.strip()) for coord in coordinates.split(',')]
         self.date_start = date_start
         self.date_end = date_end
+        self.map_directory = os.path.join(os.getcwd(), 'Maps')  # Путь к папке с картами
+        if not os.path.exists(self.map_directory):
+            os.makedirs(self.map_directory)
 
     def create_map(self):
         # Создание точки и ее трансформация
@@ -74,13 +77,14 @@ class MapViewer:
 
         # Сохранение карты в HTML файл
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        map_file_name = f'Maps/map_{current_time}.html'
-        m.to_html(map_file_name)
+        map_file_name = f'map_{current_time}.html'  # Имя файла без указания пути к папке
+        map_file_path = os.path.join(self.map_directory, map_file_name)  # Полный путь к файлу
+        m.to_html(map_file_path)
 
         # Вопрос пользователю о сохранении карты
         save_map = input("Хотите ли вы сохранить карту? (да/нет): ").lower()
         if save_map == "да":
-            webbrowser.open_new_tab(f'file://{map_file_name}')
+            webbrowser.open_new_tab(f'file://{os.path.abspath(map_file_path)}')
         elif save_map == "нет":
             print("Карта не сохранена.")
         else:

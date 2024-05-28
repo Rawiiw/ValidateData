@@ -24,6 +24,11 @@ def plot_data(satellite_name, matches, time_interval_minutes=None, satellite_pro
             else:
                 ground_x.append(pd.to_datetime(match['datetime']))
                 ground_y.append(float(match['value']))
+                min_len = min(len(satellite_x), len(ground_x), len(satellite_y), len(ground_y))
+                satellite_x = satellite_x[:min_len]
+                satellite_y = satellite_y[:min_len]
+                ground_x = ground_x[:min_len]
+                ground_y = ground_y[:min_len]
 
         # Построение точек для спутниковых значений на первом графике
         ax1.plot(satellite_x, satellite_y, marker='o', linestyle='', color='red', label='Satellite')
@@ -91,13 +96,9 @@ def plot_data(satellite_name, matches, time_interval_minutes=None, satellite_pro
         ax3.grid(True)
         ax3.legend()
 
-
-        plt.show()
-
-
+        # Сохранение графика перед показом
         save_plot = input("Хотите ли сохранить график? (да/нет): ").lower()
         if save_plot == "да":
-
             if not os.path.exists('Graphics'):
                 os.makedirs('Graphics')
             current_time = pd.Timestamp.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -106,5 +107,12 @@ def plot_data(satellite_name, matches, time_interval_minutes=None, satellite_pro
             print("График не сохранен.")
         else:
             print("Некорректный ответ.")
+
+        # Показ графика после сохранения
+        plt.show()
+
+        # Закрытие фигуры
+        plt.close(fig)
     else:
         print("No matches found.")
+

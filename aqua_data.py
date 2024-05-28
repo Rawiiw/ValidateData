@@ -1,22 +1,27 @@
 import ee
 import pandas as pd
-
+from datetime import datetime
 
 class AquaDataManager:
-    __instance = None
+    def __init__(self):
+        self.modis_product = 'MODIS/006/MYD11A1'
 
     def get_image_collection(self, coordinates, date_start, date_end):
-
         point = ee.Geometry.Point(coordinates)
-
-        transformed_point = point.transform('SR-ORG:6974', 1000)
-
-        lst = ee.ImageCollection('MODIS/006/MYD11A1') \
-            .filterBounds(transformed_point) \
+        lst = ee.ImageCollection(self.modis_product) \
+            .filterBounds(point) \
             .filterDate(date_start, date_end)
         return lst
 
+    def mask_clouds(self, image):
+        QC_Day = image.select('QC_Day')
+        QC_Night = image.select('QC_Night')
+        cloud_mask_day = QC_Day.bitwiseAnd(0b11).eq(0)
+        cloud_mask_night = QC_Night.bitwiseAnd(0b11).eq(0)
+        return image.updateMask(cloud_mask_day).updateMask(cloud_mask_night)
+
     def sample_image(self, image, point):
+        image = self.mask_clouds(image)
         image = image.addBands(image.metadata("system:time_start"))
         image = image.addBands(image.select('LST_Day_1km').multiply(0.02).subtract(273.15), overwrite=True)
         image = image.addBands(image.select('LST_Night_1km').multiply(0.02).subtract(273.15), overwrite=True)
@@ -104,14 +109,3 @@ class AquaDataManager:
         else:
             print("Feature collection is empty.")
             return None
-
-
-def dataframe_to_dict(df):
-
-    if df is not None:
-        return df.to_dict(orient='records')
-    else:
-        return None
-
-
-

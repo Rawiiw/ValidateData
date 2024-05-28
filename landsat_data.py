@@ -1,8 +1,12 @@
 import ee
 import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from collections import defaultdict
 
 class LandsatDataManager:
     __instance = None
+
     def get_image_collection(self, coordinates, date_start, date_end):
         point = ee.Geometry.Point(coordinates)
         lst = ee.ImageCollection('LANDSAT/LC08/C02/T1_L2') \
@@ -10,9 +14,17 @@ class LandsatDataManager:
             .filterDate(date_start, date_end)
         return lst
 
+    def mask_clouds(self, image):
+        qa = image.select('QA_PIXEL')
+        cloud_mask = qa.bitwiseAnd(1 << 3).eq(0)
+        cirrus_mask = qa.bitwiseAnd(1 << 4).eq(0)
+        combined_mask = cloud_mask.And(cirrus_mask)
+        return image.updateMask(combined_mask)
+
     def sample_image(self, image, point):
+        image = self.mask_clouds(image)
         image = image.addBands(image.metadata("system:time_start"))
-        image = image.addBands(image.select('ST_B10').multiply(0.001), overwrite=True)
+        image = image.addBands(image.select('ST_B10').multiply(0.00341802).subtract(273.15).add(149), overwrite=True)
         image = image.addBands(image.select('ST_ATRAN').multiply(0.0001), overwrite=True)
         image = image.addBands(image.select('ST_CDIST').multiply(0.01), overwrite=True)
         image = image.addBands(image.select('ST_DRAD').multiply(0.001), overwrite=True)
@@ -22,7 +34,6 @@ class LandsatDataManager:
         image = image.addBands(image.select('ST_TRAD').multiply(0.001), overwrite=True)
         image = image.addBands(image.select('ST_URAD').multiply(0.001), overwrite=True)
         image = image.addBands(image.select('QA_PIXEL'), overwrite=True)
-
         return image.sampleRegions(collection=point, scale=1000)
 
     def get_feature_collection(self, lst, point):
@@ -30,7 +41,7 @@ class LandsatDataManager:
         return featureCollection
 
     def replace_numbers_by_strings(self, feature):
-        d = ee.Date(feature.get('system:time_start'))
+        d = ee.Date(feature.get('system:time_start')).advance(7, 'hour').format('YYYY-MM-dd HH:mm:ss')
         st_b10 = ee.Number(feature.get('ST_B10')).format('%6.2f')
         st_atran = ee.Number(feature.get('ST_ATRAN')).format('%6.2f')
         st_cdist = ee.Number(feature.get('ST_CDIST')).format('%6.2f')
@@ -41,7 +52,7 @@ class LandsatDataManager:
         st_trad = ee.Number(feature.get('ST_TRAD')).format('%6.2f')
         st_urad = ee.Number(feature.get('ST_URAD')).format('%6.2f')
         return feature.set({
-            'date': d.format('YYYY-MM-dd'),
+            'date': d,
             'ST_B10': st_b10,
             'ST_ATRAN': st_atran,
             'ST_CDIST': st_cdist,
@@ -64,7 +75,7 @@ class LandsatDataManager:
             "ST_EMSD",
             "ST_QA",
             "ST_TRAD",
-            "ST_URAD"
+            "ST_URAD",
             "name"
         ]
 

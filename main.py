@@ -21,20 +21,18 @@ def authenticate_ee():
 def select_satellite():
     while True:
         satellite_choice = input("Выберите спутник (modis/landsat): ").lower()
-        if satellite_choice in ["modis", "landsat"]:
-            satellite_product = None
-            day_or_night = None
-            if satellite_choice == "modis":
-                satellite_product = input("Выберите тип данных (Aqua/Terra): ").lower()
-                if satellite_product not in ["aqua", "terra"]:
-                    print("Некорректный тип данных для MODIS.")
-                    continue
-                day_or_night = input("Выберите Day или Night: ").lower()
-                if day_or_night not in ["day", "night"]:
-                    print("Некорректный выбор Day или Night.")
-                    continue
-            # Для Landsat нет запроса временного промежутка
+        if satellite_choice == "modis":
+            satellite_product = input("Выберите тип данных (Aqua/Terra): ").lower()
+            if satellite_product not in ["aqua", "terra"]:
+                print("Некорректный тип данных для MODIS.")
+                continue
+            day_or_night = input("Выберите Day или Night: ").lower()
+            if day_or_night not in ["day", "night"]:
+                print("Некорректный выбор Day или Night.")
+                continue
             return satellite_choice, satellite_product, day_or_night
+        elif satellite_choice == "landsat":
+            return satellite_choice, None, None
         else:
             print("Некорректный выбор спутника.")
 
@@ -102,7 +100,6 @@ def save_table(df, matches, excel_data):
     else:
         print("Некорректный ответ.")
 
-
 if __name__ == "__main__":
     authenticate_ee()
     excel_manager = select_excel_data()
@@ -119,7 +116,6 @@ if __name__ == "__main__":
             satellite_data_manager = AquaDataManager() if satellite_product == "aqua" else TerraDataManager()
     elif satellite_choice == "landsat":
         satellite_data_manager = LandsatDataManager()
-
         time_interval_minutes = None
 
     if satellite_data_manager:
@@ -128,7 +124,6 @@ if __name__ == "__main__":
         df = satellite_data_manager.create_dataframe(featureCollection)
         excel_data = excel_manager.data
         common_dates = CommonDates(df, excel_data, satellite_choice, satellite_product, day_or_night)
-
 
         matches, daily_averages = common_dates.match_data(time_interval_minutes)
         process_data(matches, daily_averages)
@@ -139,11 +134,3 @@ if __name__ == "__main__":
         create_pdf_report(df, matches, satellite_choice, date_start, date_end)
     else:
         print("Некорректный выбор спутника.")
-
-
-
-
-
-
-
-
