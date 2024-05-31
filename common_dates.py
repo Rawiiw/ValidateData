@@ -76,7 +76,24 @@ class CommonDates:
         values = [float(match['value']) for match in matches]
         mean = np.mean(values)
         std_dev = np.std(values)
-        cleaned_matches = [match for match in matches if (mean - 3 * std_dev) <= float(match['value']) <= (mean + 3 * std_dev)]
+        cleaned_matches = [match for match in matches if
+                           (mean - 3 * std_dev) <= float(match['value']) <= (mean + 3 * std_dev)]
+        return cleaned_matches
+
+    def _remove_matches_based_on_difference(self, matches):
+        differences = []
+        for i in range(0, len(matches), 2):
+            diff = abs(float(matches[i]['value']) - float(matches[i + 1]['value']))
+            differences.append(diff)
+
+        std_dev = np.std(differences)
+        threshold = 3 * std_dev
+
+        cleaned_matches = []
+        for i in range(0, len(matches), 2):
+            if abs(float(matches[i]['value']) - float(matches[i + 1]['value'])) <= threshold:
+                cleaned_matches.extend([matches[i], matches[i + 1]])
+
         return cleaned_matches
 
     def match_data(self, time_interval_minutes=None):
@@ -120,8 +137,8 @@ class CommonDates:
                             time_of_day_str = ''
                         source = f'Satellite - {self.satellite_name} {satellite_product_str} {time_of_day_str}'
                         value = row[self.satellite_column]
-                        matches.append({'source': source, 'datetime': satellite_datetime, 'value': value})
-                        matches.append({'source': 'Ground', 'datetime': ground_datetime, 'value': match_row['value']})
+                        matches.append({'source': source, 'datetime': satellite_datetime, 'value': float(value)})
+                        matches.append({'source': 'Ground', 'datetime': ground_datetime, 'value': float(match_row['value'])})
                 else:
                     if self.satellite_product:
                         satellite_product_str = self.satellite_product.capitalize()
@@ -133,10 +150,14 @@ class CommonDates:
                         time_of_day_str = ''
                     source = f'Satellite - {self.satellite_name} {satellite_product_str} {time_of_day_str}'
                     value = row[self.satellite_column]
-                    matches.append({'source': source, 'datetime': satellite_datetime, 'value': value})
-                    matches.append({'source': 'Ground', 'datetime': ground_datetime, 'value': match_row['value']})
+                    matches.append({'source': source, 'datetime': satellite_datetime, 'value': float(value)})
+                    matches.append({'source': 'Ground', 'datetime': ground_datetime, 'value': float(match_row['value'])})
 
         # Удаление выбросов из matches
         matches = self._remove_matches_outliers(matches)
 
+        # Удаление выбросов на основе разницы значений
+        matches = self._remove_matches_based_on_difference(matches)
+
         return matches, daily_averages
+

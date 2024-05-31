@@ -16,24 +16,30 @@ class MapViewer:
         if not os.path.exists(self.map_directory):
             os.makedirs(self.map_directory)
 
+    def mask_modis_clouds(self, image):
+        qc = image.select('QC_Day')
+        cloud_mask = qc.bitwiseAnd(1 << 0).eq(0)  # Бит 0: облака
+        return image.updateMask(cloud_mask)
+
+    def mask_jaxa_clouds(self, image):
+        qc = image.select('QA_Flag')
+        cloud_mask = qc.bitwiseAnd(1 << 0).eq(0)  # Предполагаем, что бит 0 - облака
+        return image.updateMask(cloud_mask)
+
     def create_map(self):
-        # Создание точки и ее трансформация
         point = ee.Geometry.Point(self.coordinates)
         transformed_point = point.transform('SR-ORG:6974', 1000)
 
-        # Получение коллекции изображений MODIS MYD11A1
-        lst = ee.ImageCollection('MODIS/006/MYD11A1') \
+        lst_modis = ee.ImageCollection('MODIS/006/MYD11A1') \
             .filterBounds(transformed_point) \
-            .filterDate(self.date_start, self.date_end)
+            .filterDate(self.date_start, self.date_end) \
+            .map(self.mask_modis_clouds)
 
-        # Получение медианного изображения
-        median_image = lst.median()
+        median_image = lst_modis.median()
 
-        # Определение региона и обрезка изображения
         region = transformed_point.buffer(50000)
         image = median_image.clip(region)
 
-        # Получение URL для тайлов
         tile_url = image.select('LST_Day_1km').getThumbUrl({
             'min': -20, 'max': 40, 'palette': ['040274', '040281', '0502a3', '0502b8', '0502ce', '0502e6',
                                                '0602ff', '235cb1', '307ef3', '269db1', '30c8e2', '32d3ef',
@@ -42,22 +48,18 @@ class MapViewer:
                                                'ff0000', 'de0101', 'c21301', 'a71001', '911003']
         })
 
-        # Создание карты Google Earth Engine
-        map_center = [self.coordinates[1], self.coordinates[0]]  # меняем порядок координат
-        m = geemap.Map(center=map_center, zoom=12)  # Увеличиваем значение zoom
+        map_center = [self.coordinates[1], self.coordinates[0]]
+        m = geemap.Map(center=map_center, zoom=12)
 
-        # Добавление слоя с тайлами MODIS LST Day
         m.add_tile_layer(url=tile_url, name='MODIS MYD11A1')
 
-        # Добавление слоя с температурой MODIS MOD11A1
         modis = ee.ImageCollection('MODIS/061/MOD11A1') \
             .filterBounds(transformed_point) \
-            .filterDate(self.date_start, self.date_end)
+            .filterDate(self.date_start, self.date_end) \
+            .map(self.mask_modis_clouds)
 
-        # Выбор изображения с температурой
         temperature_image = modis.select('LST_Day_1km')
 
-        # Добавление слоя с температурой
         m.addLayer(temperature_image, {'min': 13000.0, 'max': 16500.0, 'palette': ['040274', '040281', '0502a3', '0502b8', '0502ce', '0502e6',
                                                                                     '0602ff', '235cb1', '307ef3', '269db1', '30c8e2', '32d3ef',
                                                                                     '3be285', '3ff38f', '86e26f', '3ae237', 'b5e22e', 'd6e21f',
@@ -65,15 +67,47 @@ class MapViewer:
                                                                                     'ff0000', 'de0101', 'c21301', 'a71001', '911003']},
                    'Land Surface Temperature MODIS/061/MOD11A1')
 
-        # Добавление слоя с тайлами Landsat
+        jaxa = ee.ImageCollection('JAXA/GCOM-C/L3/LAND/LST/V2') \
+            .filterBounds(transformed_point) \
+            .filterDate(self.date_start, self.date_end) \
+            .map(self.mask_jaxa_clouds)
+
+        if jaxa.size().getInfo() > 0:
+            jaxa_image = jaxa.median().select('LST_AVE')
+            m.addLayer(jaxa_image, {'min': 0, 'max': 40, 'palette': ['blue', 'green', 'red']}, 'JAXA GCOM-C LST')
+
+        oxford = ee.ImageCollection('Oxford/MAP/LST_Day_5km_Monthly') \
+            .filterBounds(transformed_point) \
+            .filterDate(self.date_start, self.date_end) \
+            .map(self.mask_modis_clouds)
+
+        if oxford.size().getInfo() > 0:
+            oxford_image = oxford.median().select('LST_Day')
+            m.addLayer(oxford_image, {'min': 0, 'max': 50, 'palette': ['blue', 'green', 'red']}, 'Oxford MAP LST Day')
+
+        mod21c3 = ee.ImageCollection('MODIS/061/MOD21C3') \
+            .filterBounds(transformed_point) \
+            .filterDate(self.date_start, self.date_end) \
+            .map(self.mask_modis_clouds)
+
+        mod21c3_image = mod21c3.median().select('LST_Day')
+
+        m.addLayer(mod21c3_image, {'min': 0, 'max': 50, 'palette': ['purple', 'blue', 'green', 'yellow', 'orange', 'red']}, 'MODIS MOD21C3 LST Day')
+
         landsat_tile_url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
         m.add_tile_layer(url=landsat_tile_url, name='Landsat')
+
 
         return m
 
     def display_map(self):
-        # Создание карты
         m = self.create_map()
+
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        map_file_name = f'map_{current_time}.html'
+        map_file_path = os.path.join(self.map_directory, map_file_name)
+        m.to_html(map_file_path)
+
 
         # Сохранение карты в HTML файл
         current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
