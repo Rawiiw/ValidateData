@@ -101,36 +101,41 @@ def save_table(df, matches, excel_data):
         print("Некорректный ответ.")
 
 if __name__ == "__main__":
-    authenticate_ee()
-    excel_manager = select_excel_data()
-    coordinates = get_coordinates()
-    date_start = excel_manager.date_start.strftime('%Y-%m-%d')
-    date_end = excel_manager.date_end.strftime('%Y-%m-%d')
-    satellite_choice, satellite_product, day_or_night = select_satellite()
-    satellite_data_manager = None
-    time_interval_minutes = None
-
-    if satellite_choice == "modis":
-        if satellite_product in ["aqua", "terra"]:
-            time_interval_minutes = int(input("Введите временной промежуток: "))
-            satellite_data_manager = AquaDataManager() if satellite_product == "aqua" else TerraDataManager()
-    elif satellite_choice == "landsat":
-        satellite_data_manager = LandsatDataManager()
+    while True:
+        authenticate_ee()
+        excel_manager = select_excel_data()
+        coordinates = get_coordinates()
+        date_start = excel_manager.date_start.strftime('%Y-%m-%d')
+        date_end = excel_manager.date_end.strftime('%Y-%m-%d')
+        satellite_choice, satellite_product, day_or_night = select_satellite()
+        satellite_data_manager = None
         time_interval_minutes = None
 
-    if satellite_data_manager:
-        lst = satellite_data_manager.get_image_collection(coordinates, date_start, date_end)
-        featureCollection = satellite_data_manager.get_feature_data(lst, coordinates)
-        df = satellite_data_manager.create_dataframe(featureCollection)
-        excel_data = excel_manager.data
-        common_dates = CommonDates(df, excel_data, satellite_choice, satellite_product, day_or_night)
+        if satellite_choice == "modis":
+            if satellite_product in ["aqua", "terra"]:
+                time_interval_minutes = int(input("Введите временной промежуток: "))
+                satellite_data_manager = AquaDataManager() if satellite_product == "aqua" else TerraDataManager()
+        elif satellite_choice == "landsat":
+            satellite_data_manager = LandsatDataManager()
+            time_interval_minutes = None
 
-        matches, daily_averages = common_dates.match_data(time_interval_minutes)
-        process_data(matches, daily_averages)
-        plot_data(satellite_choice, matches, time_interval_minutes, satellite_product, day_or_night)
-        map_viewer = MapViewer(coordinates, date_start, date_end)
-        map_viewer.display_map()
-        save_table(df, matches, excel_data)
-        create_pdf_report(df, matches, satellite_choice, date_start, date_end)
-    else:
-        print("Некорректный выбор спутника.")
+        if satellite_data_manager:
+            lst = satellite_data_manager.get_image_collection(coordinates, date_start, date_end)
+            featureCollection = satellite_data_manager.get_feature_data(lst, coordinates)
+            df = satellite_data_manager.create_dataframe(featureCollection)
+            excel_data = excel_manager.data
+            common_dates = CommonDates(df, excel_data, satellite_choice, satellite_product, day_or_night)
+
+            matches, daily_averages = common_dates.match_data(time_interval_minutes)
+            process_data(matches, daily_averages)
+            plot_data(satellite_choice, matches, time_interval_minutes, satellite_product, day_or_night)
+            map_viewer = MapViewer(coordinates, date_start, date_end)
+            map_viewer.display_map()
+            save_table(df, matches, excel_data)
+            create_pdf_report(df, matches, satellite_choice, date_start, date_end, coordinates, time_interval_minutes, satellite_product)
+
+            repeat = input("Хотите ли вы выполнить программу еще раз? (да/нет): ").lower()
+            if repeat != "да":
+                break
+        else:
+            print("Некорректный выбор спутника.")
