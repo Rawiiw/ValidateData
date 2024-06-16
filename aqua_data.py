@@ -1,27 +1,28 @@
 import ee
 import pandas as pd
-from datetime import datetime
 
 class AquaDataManager:
-    def __init__(self):
-        self.modis_product = 'MODIS/006/MYD11A1'
+    __instance = None
 
     def get_image_collection(self, coordinates, date_start, date_end):
         point = ee.Geometry.Point(coordinates)
-        lst = ee.ImageCollection(self.modis_product) \
-            .filterBounds(point) \
-            .filterDate(date_start, date_end)
+        transformed_point = point.transform('SR-ORG:6974', 1000)
+
+        def mask_clouds(image):
+            # Извлечение QC битов
+            qc = image.select('QC_Day')
+            cloud_mask = qc.bitwiseAnd(1 << 0).eq(0)  # Бит 0: облака
+            image = image.updateMask(cloud_mask)  # Применение маски облаков
+            return image
+
+        lst = ee.ImageCollection('MODIS/061/MYD11A1') \
+            .filterBounds(transformed_point) \
+            .filterDate(date_start, date_end) \
+            .map(mask_clouds)  # Применение маски облачности
+
         return lst
 
-    def mask_clouds(self, image):
-        QC_Day = image.select('QC_Day')
-        QC_Night = image.select('QC_Night')
-        cloud_mask_day = QC_Day.bitwiseAnd(0b11).eq(0)
-        cloud_mask_night = QC_Night.bitwiseAnd(0b11).eq(0)
-        return image.updateMask(cloud_mask_day).updateMask(cloud_mask_night)
-
     def sample_image(self, image, point):
-        image = self.mask_clouds(image)
         image = image.addBands(image.metadata("system:time_start"))
         image = image.addBands(image.select('LST_Day_1km').multiply(0.02).subtract(273.15), overwrite=True)
         image = image.addBands(image.select('LST_Night_1km').multiply(0.02).subtract(273.15), overwrite=True)
@@ -31,8 +32,8 @@ class AquaDataManager:
         image = image.addBands(image.select('Day_view_angle').add(-65), overwrite=True)
         image = image.addBands(image.select('Emis_31').multiply(0.002).add(0.49), overwrite=True)
         image = image.addBands(image.select('Emis_32').multiply(0.002).add(0.49), overwrite=True)
-        image = image.addBands(image.select('Clear_day_cov').multiply(0.005), overwrite=True)
-        image = image.addBands(image.select('Clear_night_cov').multiply(0.005), overwrite=True)
+        image = image.addBands(image.select('Clear_day_cov').multiply(0.0005), overwrite=True)
+        image = image.addBands(image.select('Clear_night_cov').multiply(0.0005), overwrite=True)
         return image.sampleRegions(collection=point, scale=1000)
 
     def get_feature_collection(self, lst, point):
@@ -89,8 +90,8 @@ class AquaDataManager:
             "name"
         ]
 
-        aqua_datatable = featureCollection.map(self.replace_numbers_by_strings).select(columns)
-        return aqua_datatable
+        modis_datatable = featureCollection.map(self.replace_numbers_by_strings).select(columns)
+        return modis_datatable
 
     def get_image_data(self, coordinates, date_start, date_end):
         lst = self.get_image_collection(coordinates, date_start, date_end)
@@ -109,3 +110,9 @@ class AquaDataManager:
         else:
             print("Feature collection is empty.")
             return None
+
+def dataframe_to_dict(df):
+    if df is not None:
+        return df.to_dict(orient='records')
+    else:
+        return None

@@ -1,3 +1,4 @@
+import warnings
 import ee
 import pandas as pd
 import os
@@ -11,7 +12,8 @@ from map_viewer import MapViewer
 from output_maker import create_csv, create_excel
 from report import create_pdf_report
 from terra_data import TerraDataManager
-
+warnings.filterwarnings('ignore')
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 def authenticate_ee():
     ee.Authenticate()

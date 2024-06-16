@@ -30,7 +30,7 @@ class MapViewer:
         point = ee.Geometry.Point(self.coordinates)
         transformed_point = point.transform('SR-ORG:6974', 1000)
 
-        lst_modis = ee.ImageCollection('MODIS/006/MYD11A1') \
+        lst_modis = ee.ImageCollection('MODIS/061/MYD11A1') \
             .filterBounds(transformed_point) \
             .filterDate(self.date_start, self.date_end) \
             .map(self.mask_modis_clouds)
